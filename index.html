@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить автомобиль</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">АвтоУчёт</div>
+        <ul class="nav-links">
+            <li><a href="index.html" class="active">Добавить авто</a></li>
+            <li><a href="cars.html">Мои автомобили</a></li>
+        </ul>
+        <button class="menu-toggle" id="menuToggle">&#9776;</button>
+    </nav>
+
+    <main class="container">
+        <div class="form-card">
+            <h1>Добавить автомобиль</h1>
+            <form id="carForm">
+                <div class="form-group">
+                    <label for="brand">Марка</label>
+                    <input type="text" id="brand" required placeholder="Например: Toyota">
+                </div>
+                <div class="form-group">
+                    <label for="model">Модель</label>
+                    <input type="text" id="model" required placeholder="Например: Camry">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="year">Год выпуска</label>
+                        <input type="number" id="year" required min="1900" max="2026" placeholder="2020">
+                    </div>
+                    <div class="form-group">
+                        <label for="mileage">Пробег (км)</label>
+                        <input type="number" id="mileage" required min="0" placeholder="50000">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="owner">Владелец</label>
+                    <input type="text" id="owner" required placeholder="Имя владельца">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Номер телефона</label>
+                    <input type="tel" id="phone" required placeholder="+7 (999) 123-45-67">
+                </div>
+                <div class="form-group">
+                    <label for="vin">VIN / Госномер</label>
+                    <input type="text" id="vin" required placeholder="А123БВ777 или VIN">
+                </div>
+                <button type="submit" class="btn-primary">Добавить автомобиль</button>
+            </form>
+            <div id="successMessage" class="success-message hidden">
+                <span>&#10003;</span> Автомобиль успешно добавлен!
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        const form = document.getElementById('carForm');
+        const successMessage = document.getElementById('successMessage');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cars = JSON.parse(localStorage.getItem('cars') || '[]');
+            const newCar = {
+                id: Date.now(),
+                brand: document.getElementById('brand').value.trim(),
+                model: document.getElementById('model').value.trim(),
+                year: parseInt(document.getElementById('year').value),
+                mileage: parseInt(document.getElementById('mileage').value),
+                owner: document.getElementById('owner').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                vin: document.getElementById('vin').value.trim()
+            };
+            cars.push(newCar);
+            localStorage.setItem('cars', JSON.stringify(cars));
+            form.reset();
+            successMessage.classList.remove('hidden');
+            setTimeout(() => successMessage.classList.add('hidden'), 3000);
+        });
+    </script>
+</body>
+</html>

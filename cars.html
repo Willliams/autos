@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои автомобили</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">АвтоУчёт</div>
+        <ul class="nav-links">
+            <li><a href="index.html">Добавить авто</a></li>
+            <li><a href="cars.html" class="active">Мои автомобили</a></li>
+        </ul>
+        <button class="menu-toggle" id="menuToggle">&#9776;</button>
+    </nav>
+
+    <main class="container">
+        <h1 class="page-title">Мои автомобили</h1>
+        <div id="emptyState" class="empty-state hidden">
+            <div class="empty-icon">&#128663;</div>
+            <p>Нет сохранённых автомобилей</p>
+            <a href="index.html" class="btn-primary">Добавить первый автомобиль</a>
+        </div>
+        <div id="searchBar" class="search-bar hidden">
+            <input type="text" id="searchInput" placeholder="Поиск по марке, модели, владельцу...">
+        </div>
+        <div id="carsGrid" class="cars-grid"></div>
+    </main>
+
+    <!-- Modal edit -->
+    <div id="editModal" class="modal hidden">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <h2>Редактировать автомобиль</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editBrand">Марка</label>
+                    <input type="text" id="editBrand" required>
+                </div>
+                <div class="form-group">
+                    <label for="editModel">Модель</label>
+                    <input type="text" id="editModel" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editYear">Год выпуска</label>
+                        <input type="number" id="editYear" required min="1900" max="2026">
+                    </div>
+                    <div class="form-group">
+                        <label for="editMileage">Пробег (км)</label>
+                        <input type="number" id="editMileage" required min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editOwner">Владелец</label>
+                    <input type="text" id="editOwner" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPhone">Номер телефона</label>
+                    <input type="tel" id="editPhone" required>
+                </div>
+                <div class="form-group">
+                    <label for="editVin">VIN / Госномер</label>
+                    <input type="text" id="editVin" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelEdit">Отмена</button>
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const carsGrid = document.getElementById('carsGrid');
+        const emptyState = document.getElementById('emptyState');
+        const searchBar = document.getElementById('searchBar');
+        const searchInput = document.getElementById('searchInput');
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const cancelEdit = document.getElementById('cancelEdit');
+
+        function getCars() {
+            return JSON.parse(localStorage.getItem('cars') || '[]');
+        }
+
+        function saveCars(cars) {
+            localStorage.setItem('cars', JSON.stringify(cars));
+        }
+
+        function formatMileage(n) {
+            return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        }
+
+        function renderCars(filter = '') {
+            const cars = getCars();
+            const filtered = filter
+                ? cars.filter(c =>
+                    c.brand.toLowerCase().includes(filter) ||
+                    c.model.toLowerCase().includes(filter) ||
+                    c.owner.toLowerCase().includes(filter) ||
+                    c.vin.toLowerCase().includes(filter))
+                : cars;
+
+            if (filtered.length === 0) {
+                carsGrid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                searchBar.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            searchBar.classList.remove('hidden');
+
+            carsGrid.innerHTML = filtered.map(car => `
+                <div class="car-card" data-id="${car.id}">
+                    <div class="card-header">
+                        <div class="car-icon">&#128663;</div>
+                        <div class="card-title">
+                            <h3>${car.brand} ${car.model}</h3>
+                            <span class="car-year">${car.year} г.</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Владелец</span>
+                            <span class="info-value">${car.owner}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Телефон</span>
+                            <span class="info-value">${car.phone}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Пробег</span>
+                            <span class="info-value">${formatMileage(car.mileage)} км</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">VIN / Госномер</span>
+                            <span class="info-value vin">${car.vin}</span>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn-edit" onclick="openEdit(${car.id})">&#9998; Редактировать</button>
+                        <button class="btn-delete" onclick="deleteCar(${car.id})">&#10005; Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteCar(id) {
+            if (!confirm('Удалить этот автомобиль?')) return;
+            const cars = getCars().filter(c => c.id !== id);
+            saveCars(cars);
+            renderCars(searchInput.value.trim().toLowerCase());
+        }
+
+        function openEdit(id) {
+            const car = getCars().find(c => c.id === id);
+            if (!car) return;
+            document.getElementById('editId').value = car.id;
+            document.getElementById('editBrand').value = car.brand;
+            document.getElementById('editModel').value = car.model;
+            document.getElementById('editYear').value = car.year;
+            document.getElementById('editMileage').value = car.mileage;
+            document.getElementById('editOwner').value = car.owner;
+            document.getElementById('editPhone').value = car.phone;
+            document.getElementById('editVin').value = car.vin;
+            editModal.classList.remove('hidden');
+        }
+
+        cancelEdit.addEventListener('click', () => editModal.classList.add('hidden'));
+        modalOverlay.addEventListener('click', () => editModal.classList.add('hidden'));
+
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('editId').value);
+            const cars = getCars();
+            const idx = cars.findIndex(c => c.id === id);
+            if (idx === -1) return;
+            cars[idx] = {
+                ...cars[idx],
+                brand: document.getElementById('editBrand').value.trim(),
+                model: document.getElementById('editModel').value.trim(),
+                year: parseInt(document.getElementById('editYear').value),
+                mileage: parseInt(document.getElementById('editMileage').value),
+                owner: document.getElementById('editOwner').value.trim(),
+                phone: document.getElementById('editPhone').value.trim(),
+                vin: document.getElementById('editVin').value.trim()
+            };
+            saveCars(cars);
+            editModal.classList.add('hidden');
+            renderCars(searchInput.value.trim().toLowerCase());
+        });
+
+        searchInput.addEventListener('input', function() {
+            renderCars(this.value.trim().toLowerCase());
+        });
+
+        renderCars();
+    </script>
+</body>
+</html>
